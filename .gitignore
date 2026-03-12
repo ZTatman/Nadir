@@ -1,0 +1,14 @@
+/.env
+/.venv/
+/.python-version
+/.ruff_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+/chroma_db/
+/journal_entries/
+*.sqlite3
+*.db
+.vscode/

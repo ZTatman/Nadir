@@ -26,8 +26,24 @@ def add_entry(transcript: str, moods: list[MoodTag], tags: list[str]):
 
     metadata = {
         "date": entry.timestamp.strftime("%Y-%m-%d"),
-        "moods": [{"name": m.name, "intensity": m.intensity} for m in entry.moods],
-        "tags": entry.tags,
+        "moods": ",".join(f"{m.name}:{m.intensity}" for m in entry.moods),
+        "tags": (",").join(entry.tags),
     }
 
     collection.add(ids=[entry.id], documents=[entry.transcript], metadatas=[metadata])
+
+
+# Test voice entry
+add_entry(
+    transcript=(
+        "Feeling pretty scattered today. Work was overwhelming and I "
+        "snapped at a colleague over something small. Didn't sleep well "
+        "last night and skipped lunch which always makes things worse."
+    ),
+    moods=[
+        MoodTag(name="irritable", intensity=7),
+        MoodTag(name="anxious", intensity=6),
+        MoodTag(name="ashamed", intensity=4),
+    ],
+    tags=["work", "poor sleep", "skipped meal"],
+)

@@ -1,11 +1,12 @@
 import uuid
 from datetime import datetime
 
-from db import get_collection
+from db import get_diary_collection
 from models import JournalEntry, MoodTag
+
 # from pydantic import BaseModel
 
-collection = get_collection()
+collection = get_diary_collection()
 
 
 def add_entry(transcript: str, moods: list[MoodTag], tags: list[str]):

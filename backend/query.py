@@ -1,17 +1,22 @@
-from openai import OpenAI
-from dotenv import load_dotenv
-from db import get_collection
+from functools import lru_cache
 
-if not load_dotenv():
-    print("⚠️  Warning: .env file not found")
+from db import get_diary_collection
+from dotenv import load_dotenv
+from openai import OpenAI
 
 model = "llama3.2"
 
-# create openai client for local model
-client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
 
-# connect to chromadb
-collection = get_collection()
+@lru_cache(maxsize=1)
+def get_openai_client():
+    """Loads environement variables and creates a cached OpenAI client.
+
+    Returns:
+        An OpenAI client
+    """
+    load_dotenv()
+    client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+    return client
 
 
 def query_entries(user_question: str) -> str:
@@ -23,6 +28,10 @@ def query_entries(user_question: str) -> str:
     Returns:
         A string response from the AI based on relevant diary entries
     """
+    # create openai client and connect to chromadb
+    client = get_openai_client()
+    collection = get_diary_collection()
+
     n = min(3, collection.count())
     if n == 0:
         return "No diary entries found. Record some entries first."
@@ -34,7 +43,7 @@ def query_entries(user_question: str) -> str:
 
     # ── 2. Build context string ────────────────────────────────────────
     context = ""
-    for doc, meta in zip(documents, metadatas):
+    for doc, meta in zip(documents, metadatas, strict=True):
         moods = meta.get("moods", "unknown") or "unknown"
         tags = meta.get("tags", "none") or "none"
         context += (

@@ -1,8 +1,3 @@
-import openai
-import streamlit
-
-
-
 def main():
     print("Hello from nadir!")
 

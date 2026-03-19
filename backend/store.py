@@ -1,11 +1,12 @@
 import uuid
 from datetime import datetime
 
-from db import get_collection
+from db import get_diary_collection
 from models import JournalEntry, MoodTag
+
 # from pydantic import BaseModel
 
-collection = get_collection()
+collection = get_diary_collection()
 
 
 def add_entry(transcript: str, moods: list[MoodTag], tags: list[str]):
@@ -33,17 +34,18 @@ def add_entry(transcript: str, moods: list[MoodTag], tags: list[str]):
     collection.add(ids=[entry.id], documents=[entry.transcript], metadatas=[metadata])
 
 
-# Test voice entry
-add_entry(
-    transcript=(
-        "Feeling pretty scattered today. Work was overwhelming and I "
-        "snapped at a colleague over something small. Didn't sleep well "
-        "last night and skipped lunch which always makes things worse."
-    ),
-    moods=[
-        MoodTag(name="irritable", intensity=7),
-        MoodTag(name="anxious", intensity=6),
-        MoodTag(name="ashamed", intensity=4),
-    ],
-    tags=["work", "poor sleep", "skipped meal"],
-)
+if __name__ == "__main__":
+    # Test voice entry
+    add_entry(
+        transcript=(
+            "Feeling pretty scattered today. Work was overwhelming and I "
+            "snapped at a colleague over something small. Didn't sleep well "
+            "last night and skipped lunch which always makes things worse."
+        ),
+        moods=[
+            MoodTag(name="irritable", intensity=7),
+            MoodTag(name="anxious", intensity=6),
+            MoodTag(name="ashamed", intensity=4),
+        ],
+        tags=["work", "poor sleep", "skipped meal"],
+    )

@@ -65,11 +65,14 @@ def query_entries(user_question: str) -> str:
     """
 
     # ── 4. Send to model and return response ──────────────────────────
-    response = client.chat.completions.create(
+try:
+    response = client.with_options(timeout=30.0).chat.completions.create(
         model=model, messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message.content
+except (APITimeoutError, APIConnectionError):
+    return "I couldn't reach the local model right now. Please try again."
 
+return (response.choices[0].message.content or "").strip()
 
 if __name__ == "__main__":
     # Interactive CLI loop for testing

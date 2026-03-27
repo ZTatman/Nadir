@@ -71,7 +71,7 @@ Nadir is a voice-first personal mood diary app. Users speak freely, their voice 
 
 Go to **Settings → API** and copy:
 
-```
+```text
 Project URL:   https://xxxxxxxxxxxx.supabase.co
 Anon key:      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Service key:   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  ← keep secret, server only
@@ -79,7 +79,7 @@ Service key:   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  ← keep secret, server 
 
 Go to **Settings → Database** and copy:
 
-```
+```text
 Connection string (URI):
 postgresql://postgres:[PASSWORD]@db.xxxxxxxxxxxx.supabase.co:5432/postgres
 ```
@@ -116,6 +116,8 @@ Your `.gitignore` should already contain `.env` — confirm before pushing to Gi
 
 Run all of the following SQL in **Supabase → SQL Editor** in the order shown.
 
+PR 1 includes the core schema only: Steps 1 and 3-7. Steps 2, 8-10 are planned for later PRs.
+
 ### Step 1 — Enable extensions
 
 ```sql
@@ -130,7 +132,7 @@ create extension if not exists vector with schema extensions;
 create extension if not exists pgcrypto with schema extensions;
 ```
 
-### Step 2 — profiles table
+### Step 2 — profiles table (planned trigger in a later PR)
 
 `profiles` is the user identity table. In the current core schema PR, rows are not auto-created yet; the signup trigger will be added in a later PR.
 
@@ -163,8 +165,7 @@ create table public.entries (
 
 -- Index for fast vector similarity search
 create index on public.entries
-    using ivfflat (embedding vector_cosine_ops)
-    with (lists = 100);
+    using hnsw (embedding vector_cosine_ops);
 
 -- Index for fast user entry lookups
 create index on public.entries (user_id, created_at desc);
@@ -247,7 +248,7 @@ create index on public.entry_feedback (user_id, created_at desc);
 create index on public.entry_feedback (entry_id);
 ```
 
-### Step 8 — ai_usage_log table
+### Step 8 — ai_usage_log table (planned in a later PR)
 
 ```sql
 create table public.ai_usage_log (
@@ -263,7 +264,7 @@ create table public.ai_usage_log (
 create index on public.ai_usage_log (user_id, created_at desc);
 ```
 
-### Step 9 — subscriptions table
+### Step 9 — subscriptions table (planned in a later PR)
 
 ```sql
 create table public.subscriptions (
@@ -280,7 +281,7 @@ create table public.subscriptions (
 create index on public.subscriptions (stripe_customer_id);
 ```
 
-### Step 10 — match_entries function (RAG vector search)
+### Step 10 — match_entries function (planned in a later PR)
 
 ```sql
 create or replace function match_entries (
@@ -344,7 +345,7 @@ values ('avatars', 'avatars', false);
 
 ### File path conventions
 
-```
+```text
 recordings/
 └── {user_id}/
     └── {YYYYMMDD_HHMMSS}.m4a
@@ -621,7 +622,7 @@ Supabase Auth handles everything. Your FastAPI server verifies the JWT token on 
 
 ### How it works
 
-```
+```text
 1. User signs in on mobile app via Supabase Auth SDK
 2. Supabase returns a JWT access token
 3. Mobile app sends JWT in every API request header:
@@ -871,7 +872,7 @@ async def upload_audio(
 
 ## 15. Full System Architecture
 
-```
+```text
 ┌─────────────────┐         ┌──────────────────────┐        ┌─────────────────────────┐
 │   Phone app     │         │   FastAPI server      │        │   Supabase              │
 │ React Native    │         │   main.py             │        │                         │

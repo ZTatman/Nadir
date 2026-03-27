@@ -119,16 +119,20 @@ Run all of the following SQL in **Supabase → SQL Editor** in the order shown.
 ### Step 1 — Enable extensions
 
 ```sql
--- Vector similarity search
-create extension if not exists vector;
+create schema if not exists extensions;
 
--- UUID generation
-create extension if not exists "uuid-ossp";
+-- Vector similarity search
+create extension if not exists vector with schema extensions;
+
+-- UUID generation and crypto helpers
+-- `gen_random_uuid()` is available on modern Postgres, but pgcrypto keeps the
+-- setup compatible and provides other crypto helpers we may use later.
+create extension if not exists pgcrypto with schema extensions;
 ```
 
 ### Step 2 — profiles table
 
-Created automatically when a user signs up via a trigger on `auth.users`.
+`profiles` is the user identity table. In the current core schema PR, rows are not auto-created yet; the signup trigger will be added in a later PR.
 
 ```sql
 create table public.profiles (
@@ -137,21 +141,9 @@ create table public.profiles (
     display_name        text,
     avatar_url          text
 );
-
--- Auto-create profile when user signs up
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-    insert into public.profiles (id, display_name)
-    values (new.id, new.raw_user_meta_data->>'full_name');
-    return new;
-end;
-$$ language plpgsql security definer;
-
-create trigger on_auth_user_created
-    after insert on auth.users
-    for each row execute procedure public.handle_new_user();
 ```
+
+The auto-create trigger for new users will be added in a later PR.
 
 ### Step 3 — entries table
 
@@ -643,7 +635,7 @@ Supabase Auth handles everything. Your FastAPI server verifies the JWT token on 
 
 ```python
 from fastapi import Depends, HTTPException, Header
-from python_jose import jwt, JWTError
+from jose import jwt, JWTError
 import os
 
 SUPABASE_JWT_SECRET = os.environ["SUPABASE_JWT_SECRET"]  # from Supabase dashboard

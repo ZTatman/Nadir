@@ -47,8 +47,7 @@ create index entries_user_status_created_at_idx
 
 create index entries_embedding_idx
     on public.entries
-    using ivfflat (embedding vector_cosine_ops)
-    with (lists = 100);
+    using hnsw (embedding vector_cosine_ops);
 
 -- ------------------------------------------------------------
 -- entry_analysis

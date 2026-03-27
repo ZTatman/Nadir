@@ -361,10 +361,11 @@ avatars/
 ### Accessing files from Python (signed URL — expires in 1 hour)
 
 ```python
-url = supabase.storage.from_("recordings").create_signed_url(
+response = supabase.storage.from_("recordings").create_signed_url(
     path=f"{user_id}/{filename}",
     expires_in=3600
 )
+url = response["signedURL"]
 ```
 
 ---

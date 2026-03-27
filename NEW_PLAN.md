@@ -315,6 +315,7 @@ as $$
     from public.entries e
     left join public.entry_analysis a on a.entry_id = e.id
     where e.user_id = match_user_id
+      and e.embedding is not null
     order by e.embedding <=> query_embedding
     limit match_count;
 $$;

@@ -581,6 +581,7 @@ Imported by store.py, query.py, and main.py
 """
 
 import os
+from functools import lru_cache
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from sentence_transformers import SentenceTransformer
@@ -589,8 +590,9 @@ load_dotenv()
 
 # ── Supabase client ───────────────────────────────────────────────────────────
 
+@lru_cache(maxsize=1)
 def get_supabase() -> Client:
-    """Returns authenticated Supabase client using the service key."""
+    """Return the cached Supabase client (create once, reuse)."""
     url = os.environ["SUPABASE_URL"]
     key = os.environ["SUPABASE_SERVICE_KEY"]   # service key for server-side ops
     return create_client(url, key)
@@ -600,15 +602,11 @@ def get_storage():
     return get_supabase().storage.from_("recordings")
 
 # ── Embedding model ───────────────────────────────────────────────────────────
-# Downloads ~80MB on first run, cached locally after that
 
-_model = None
-
+@lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _model
+    """Return the cached embedding model (downloads ~80 MB on first run)."""
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
 def embed(text: str) -> list[float]:
     """Convert a string to a 384-dimensional embedding vector."""
@@ -746,6 +744,10 @@ async def revenuecat_webhook(request: Request):
 Add this check to every FastAPI endpoint that calls an LLM.
 
 ```python
+from datetime import datetime
+from fastapi import HTTPException
+from db import get_supabase
+
 def check_ai_limit(user_id: str, call_type: str):
     """
     Raises HTTP 429 if user has exceeded their monthly AI limit for this call type.

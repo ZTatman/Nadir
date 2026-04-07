@@ -139,7 +139,7 @@ create extension if not exists pgcrypto with schema extensions;
 ```sql
 create table public.profiles (
     id                  uuid primary key references auth.users(id) on delete cascade,
-    created_at          timestamptz default now(),
+    created_at          timestamptz not null default now(),
     display_name        text,
     avatar_url          text
 );
@@ -153,7 +153,7 @@ The auto-create trigger for new users will be added in a later PR.
 create table public.entries (
     id              uuid primary key default gen_random_uuid(),
     user_id         uuid not null references public.profiles(id) on delete cascade,
-    created_at      timestamptz default now(),
+    created_at      timestamptz not null default now(),
     transcript      text not null,
     audio_path      text,                     -- pointer to Supabase Storage object path
     duration_secs   int,                      -- length of the voice recording
@@ -179,8 +179,8 @@ create index on public.entries (user_id, processing_status, created_at desc);
 ```sql
 create table public.entry_analysis (
     entry_id         uuid primary key references public.entries(id) on delete cascade,
-    created_at       timestamptz default now(),
-    updated_at       timestamptz default now(),
+    created_at       timestamptz not null default now(),
+    updated_at       timestamptz not null default now(),
     valence          double precision check (valence between -1.0 and 1.0),
     arousal          double precision check (arousal between 0.0 and 1.0),
     intensity        double precision check (intensity between 0.0 and 1.0),
@@ -205,7 +205,7 @@ create table public.entry_mood_signals (
     intensity     double precision not null check (intensity between 0.0 and 1.0),
     confidence    double precision check (confidence between 0.0 and 1.0),
     valence_weight double precision,
-    created_at    timestamptz default now(),
+    created_at    timestamptz not null default now(),
     unique (entry_id, mood)
 );
 
@@ -221,7 +221,7 @@ create table public.entry_tags (
     entry_id      uuid not null references public.entries(id) on delete cascade,
     tag           text not null,
     confidence    double precision check (confidence between 0.0 and 1.0),
-    created_at    timestamptz default now(),
+    created_at    timestamptz not null default now(),
     unique (entry_id, tag)
 );
 
@@ -236,7 +236,7 @@ create table public.entry_feedback (
     id           uuid primary key default gen_random_uuid(),
     entry_id     uuid not null references public.entries(id) on delete cascade,
     user_id      uuid not null references public.profiles(id) on delete cascade,
-    created_at   timestamptz default now(),
+    created_at   timestamptz not null default now(),
     field_name   text not null,
     old_value    jsonb,
     new_value    jsonb,
@@ -254,7 +254,7 @@ create index on public.entry_feedback (entry_id);
 create table public.ai_usage_log (
     id          uuid primary key default gen_random_uuid(),
     user_id     uuid not null references public.profiles(id) on delete cascade,
-    created_at  timestamptz default now(),
+    created_at  timestamptz not null default now(),
     call_type   text not null
         check (call_type in ('ask', 'extract', 'summarise')),
     tokens_used int,
@@ -269,7 +269,7 @@ create index on public.ai_usage_log (user_id, created_at desc);
 ```sql
 create table public.subscriptions (
     user_id               uuid primary key references public.profiles(id) on delete cascade,
-    created_at            timestamptz default now(),
+    created_at            timestamptz not null default now(),
     stripe_customer_id    text unique,
     stripe_sub_id         text unique,
     tier                  text not null default 'free',     -- 'free' | 'pro' | 'unlimited'
@@ -370,9 +370,9 @@ url = response["signedURL"]
 
 ---
 
-## 7. Row Level Security
+## 7. Row-Level Security
 
-RLS ensures every user can only see and modify their own data. Run in **SQL Editor**.
+RLS ensures every user can only see their own data, and modify it only where explicit mutation policies exist. Run in **SQL Editor**.
 
 ```sql
 -- ── profiles ──
@@ -744,7 +744,7 @@ async def revenuecat_webhook(request: Request):
 Add this check to every FastAPI endpoint that calls an LLM.
 
 ```python
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 from db import get_supabase
 
@@ -787,7 +787,7 @@ def check_ai_limit(user_id: str, call_type: str):
 
     # Count usage for the current month and call type from the log table.
     # This keeps the profiles table identity-only.
-    month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     usage = supabase.table("ai_usage_log")\
         .select("id", count="exact")\
         .eq("user_id", user_id)\
@@ -866,8 +866,10 @@ async def upload_audio(
         tmp.write(audio_bytes)
         tmp_path = tmp.name
 
-    transcript = transcribe(tmp_path)   # your transcribe.py function
-    os.unlink(tmp_path)
+    try:
+        transcript = transcribe(tmp_path)   # your transcribe.py function
+    finally:
+        os.unlink(tmp_path)
 
     return {"transcript": transcript, "audio_path": audio_path}
 ```

@@ -1,0 +1,2 @@
+-- Placeholder seed file for local Supabase resets.
+-- Intentionally empty while the core-schema PR remains database-only.
